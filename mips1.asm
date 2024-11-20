@@ -54,14 +54,12 @@ Check:
 check_number:
     li $t4, 48            # ASCII للصفر
     li $t5, 57            # ASCII للتسعة
-
 check_loop:
     beqz $t3,go_Next  # إذا كانت القيمة صفرًا (نهاية النص)، إنهاء
     li $t6,61
     beq $t6,$t3,go_Next
     blt $t3, $t4, next_char # إذا كانت أقل من ASCII للصفر، انتقل إلى الخانة التالية
-    bgt $t3, $t5, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية
-    
+    bgt $t3, $t5, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  
     # إذا كانت القيمة رقمًا، اطبعها
     sb $t3,0($t0)
     addi $t0,$t0,1
