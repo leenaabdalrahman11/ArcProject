@@ -13,7 +13,6 @@ Results: .space 128
 .text
 .globl main
 main:
-
     # فتح الملف
     li $v0, 13           # syscall لفتح الملف
     la $a0, fileName     # مسار الملف
@@ -47,19 +46,25 @@ read_line:
     addi $t1, $t1, 1     # الانتقال إلى الموقع التالي في lineBuffer
     j read_line          # كرر قراءة الحرف التالي
 Check:
+    move $s6,$s7
     move $t1, $s7         # تحميل العنوان في $t1
     lb $t3, 0($t1)        # قراءة أول قيمة من العنوان
     la $t0,Coefficient
-
+    la $t2,Variables
+    la $t7,Results
+    move $t5,$t7
+    move $t8,$t2
 check_number:
-    li $t4, 48            # ASCII للصفر
-    li $t5, 57            # ASCII للتسعة
+    li $s2, 48            # ASCII للصفر
+    li $s3, 57            # ASCII للتسعة
+    li $s4, 65              # ASCII للحرف 'A'
+    li $s5, 90              # ASCII للحرف 'Z'
 check_loop:
     beqz $t3,go_Next  # إذا كانت القيمة صفرًا (نهاية النص)، إنهاء
     li $t6,61
     beq $t6,$t3,go_Next
-    blt $t3, $t4, next_char # إذا كانت أقل من ASCII للصفر، انتقل إلى الخانة التالية
-    bgt $t3, $t5, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  
+    blt $t3, $s2, next_char # إذا كانت أقل من ASCII للصفر، انتقل إلى الخانة التالية
+    bgt $t3, $s3, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  
     # إذا كانت القيمة رقمًا، اطبعها
     sb $t3,0($t0)
     addi $t0,$t0,1
@@ -67,31 +72,88 @@ check_loop:
     move $a0, $t3         # تحميل الرقم إلى $a0
     syscall
     # الانتقال إلى العنوان التالي
-    j next_char           # انتقل مباشرةً لمعالجة البايت التالي
+    j next_char           # انتقل مباشرةً لمعالجة البايت التا لي 
 go_Next:
-    addi $s7,$s7,32
-    lb $t3,0($s7)
-    move $t1,$s7
-    addi $t0,$t0,30
-    beqz $t3,end_check
-    j check_loop
-    
+    beq $t3, $t6, ADD_Results  # إذا كانت القيمة '=', انتقل إلى ADD_Results
+    addi $s7, $s7, 32          # تحريك $s7
+    lb $t3, 0($s7)             # قراءة القيمة التالية
+    move $t1, $s7              # تحديث $t1
+    addi $t0, $t0, 30          # تحديث مؤشر Coefficient
+    addi $t7,$t7,30
+    beqz $t3, end_check        # إذا كانت القيمة صفرًا، إنهاء
+    j check_loop               # العودة إلى الحلقة
+go_Next_EQ:
+    addi $t1,$t1,1
+
+ADD_Results:
+add_results_loop:
+    lb $t3, 0($t1)             # قراءة البايت الحالي
+   
+    # إذا كانت القيمة صفرًا (نهاية النص)، انتقل إلى go_Next
+    beq $t3, $t6, go_Next_EQ      # إذا كانت '=', انتقل إلى go_Nex t
+    beqz $t3, go_Next
+    li $t4, 13                 # ASCII لـ \r
+    beq $t3, $t4, skip_store   # إذا كانت القيمة \r، 
+    sb $t3, 0($t7)             # تخزين القيمة في Results
+    addi $t7, $t7, 1           # تحديث مؤشر Results
+    addi $t1, $t1, 1           # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)             # قراءة البايت التالي
+    li $v0, 11                 # syscall لطباعة حرف
+    move $a0, $t3              # تحميل الرقم للطباعة
+    syscall
+    j add_results_loop         # العودة للتحقق من البايت التالي
+
+skip_store:
+    addi $t1, $t1, 1           # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)             # قراءة البايت التالي
+    li $v0, 11                 # syscall لطباعة حرف
+    move $a0, $t3              # تحميل الرقم للطباعة
+    syscall
+    j add_results_loop         # العودة للتح   
+ 
 next_char:
+    blt $t3, $s4, not_char  # إذا كانت أقل من 'A'
+    ble $t3, $s5, is_char   # إذا كانت بين 'A' و 'Z'    
     addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
     lb $t3, 0($t1)        # قراءة البايت التالي
+    
     j check_loop          # العودة للتحقق من البايت التالي
 
+not_char:
+    addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)        # قراءة البايت التالي
+    j check_loop          # العودة للتحقق من البايت التال
+
+is_char:
+    lb $t9,0($t8)
+    beq $t3,$t9,checkLoop
+    sb $t3,0($t2)
+    addi $t2,$t2,32
+    li $v0, 11            # syscall لطباعة حرف
+    move $a0, $t3         # تحميل الرقم إلى $a0
+    syscall
+    addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)        # قراءة البايت التالي
+    j check_loop 
+    
+checkLoop:
+    addi $t8,$t8,32
+    addi $t1,$t1,1
+    lb $t3, 0($t1) 
+    j check_loop 
+    
+    
 end_check:
     # طباعة سطر جديد بعد الأرقام
     li $v0, 4
     la $a0, newline
     syscall
-
+    move $s7,$s6
+    #ble $t3, $s5, is_char    # إذا كانت بين 'A' و 'Z'، هي حرف
+    
     # إنهاء البرنامج
     li $v0, 10            # syscall لإنهاء البرنامج
     syscall
-
-
 
 process_line:
     sb $zero, 0($t1)     # إضافة نهاية السلسلة إلى lineBuffer
