@@ -7,7 +7,7 @@ newlineChar: .byte 10        # السطر الجديد ('\n') ASCII 10
 endOfBuffer: .byte 0         # نهاية السلسلةة
 newline: .asciiz "\n"    # ت
 Arrays: .space 512          # لتخزين عدة معادلات (4 معادلات × 128 بايت لكل معادل
-Coefficient: .space 128
+Coefficient: .space 512
 Variables: .space 128
 Results: .space 128
 .text
@@ -34,7 +34,7 @@ main:
     la $t1, lineBuffer   # مؤشر لتخزين معادلة واحدة
     la $t9, Arrays       # $t9 مؤشر إلى بداية Arrays (وجهة النسخ)
     la $s7, Arrays
-    li $t8, 32          # $t8 يُستخدم لتحديد حجم كل معادلة (للتنقل بين المواقع)
+    li $t8, 32         # $t8 يُستخدم لتحديد حجم كل معادلة (للتنقل بين المواقع)
 
 read_line:
     lb $t2, 0($t0)       # قراءة بايت واحد من buffer
@@ -50,6 +50,7 @@ Check:
     move $t1, $s7         # تحميل العنوان في $t1
     lb $t3, 0($t1)        # قراءة أول قيمة من العنوان
     la $t0,Coefficient
+    subi $t0,$t0,2
     la $t2,Variables
     la $t7,Results
     move $t5,$t7
@@ -59,26 +60,35 @@ check_number:
     li $s3, 57            # ASCII للتسعة
     li $s4, 65              # ASCII للحرف 'A'
     li $s5, 90              # ASCII للحرف 'Z'
+    li $t5,0
+     
 check_loop:
     beqz $t3,go_Next  # إذا كانت القيمة صفرًا (نهاية النص)، إنهاء
     li $t6,61
     beq $t6,$t3,go_Next
+Coefi_:
     blt $t3, $s2, next_char # إذا كانت أقل من ASCII للصفر، انتقل إلى الخانة التالية
-    bgt $t3, $s3, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  
-    # إذا كانت القيمة رقمًا، اطبعها
-    sb $t3,0($t0)
-    addi $t0,$t0,1
+    bgt $t3, $s3, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  لي 
+    subi $t3,$t3,48
+    #sb $t3,0($t0)
+    mul $t5, $t5, 10           # ضرب الرقم السابق بـ 10
+   
+    add $t5, $t5, $t3          # إض
+    move $t3,$t5
+     # تخزين الرقم المؤقت في المصفوفة
+    move $t5, $t3                
     li $v0, 11            # syscall لطباعة حرف
     move $a0, $t3         # تحميل الرقم إلى $a0
     syscall
     # الانتقال إلى العنوان التالي
-    j next_char           # انتقل مباشرةً لمعالجة البايت التا لي 
+    j next_char 
+   
 go_Next:
     beq $t3, $t6, ADD_Results  # إذا كانت القيمة '=', انتقل إلى ADD_Results
     addi $s7, $s7, 32          # تحريك $s7
     lb $t3, 0($s7)             # قراءة القيمة التالية
     move $t1, $s7              # تحديث $t1
-    addi $t0, $t0, 30          # تحديث مؤشر Coefficient
+    addi $t0, $t0, 24     # تحديث مؤشر Coefficient
     addi $t7,$t7,30
     beqz $t3, end_check        # إذا كانت القيمة صفرًا، إنهاء
     j check_loop               # العودة إلى الحلقة
@@ -88,7 +98,6 @@ go_Next_EQ:
 ADD_Results:
 add_results_loop:
     lb $t3, 0($t1)             # قراءة البايت الحالي
-   
     # إذا كانت القيمة صفرًا (نهاية النص)، انتقل إلى go_Next
     beq $t3, $t6, go_Next_EQ      # إذا كانت '=', انتقل إلى go_Nex t
     beqz $t3, go_Next
@@ -112,11 +121,13 @@ skip_store:
     j add_results_loop         # العودة للتح   
  
 next_char:
+   # sw $t4, 0($t0)           # تخزين الرقم في Coefficient
+   # addi $t0, $t0, 4         # الانتقال إلى الموقع التالي في المصفوفة
     blt $t3, $s4, not_char  # إذا كانت أقل من 'A'
     ble $t3, $s5, is_char   # إذا كانت بين 'A' و 'Z'    
     addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
     lb $t3, 0($t1)        # قراءة البايت التالي
-    
+    li $t4,0
     j check_loop          # العودة للتحقق من البايت التالي
 
 not_char:
@@ -125,6 +136,9 @@ not_char:
     j check_loop          # العودة للتحقق من البايت التال
 
 is_char:
+    sw $t5, 0($t0)           # تخزين الرقم في Coefficient
+    addi $t0, $t0, 4         # الانتقال إلى الموقع التالي في المصفوفة
+    li $t5,0
     lb $t9,0($t8)
     beq $t3,$t9,checkLoop
     sb $t3,0($t2)
