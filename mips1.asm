@@ -1,5 +1,6 @@
 #Leena Abd Arahman 1211051
 #Aseel Saleh 1213378
+
 .data
 fileName: .asciiz "C:\\Users\\leena\\Desktop\\ARC\\input.txt" # مسار الملف
 fileWords: .space 1024       # لتخزين البيانات المقروءة من الملف
@@ -20,12 +21,107 @@ Y: .float 0.0
 Z: .float 0.0
 done_flag: .word 0  # متغير لتحديد إذا انتهت العمليات
 
+###############
+prompt_file: .asciiz "Enter the file path: "
+invalid_input: .asciiz "Invalid input. Please try again.\n"
+file_output_msg: .asciiz "Output will be written to a file.\n"
+screen_output_msg: .asciiz "Output will be displayed on the screen.\n"
+result_str: .asciiz "Results: Determinant = "
+filepath: .space 128       # مساحة لتخزين اسم الملف
+output_file_name: .space 128 # مساحة لتخزين اسم ملف الإخراج
+
+output_file: .asciiz "C:\\Users\\leena\\Desktop\\ARC\\output.txt"
+output_message: .asciiz "the output is perfect111111:\n"
+
+error_message: .asciiz "خطأ: فشل في فتح الملف.\n"
+buffer: .space 128
+
+menu_message: .asciiz "\nChoose an option:\n:\n'f' or 'F' to save results to a file\n's' or 'S' to display results on screen\n'e' or 'E' to exit the program\nYour choice: "
+invalid_message: .asciiz "Invalid input. Please try again.\n"
+exit_message: .asciiz "Exiting the program. Goodbye!\n"
+input_file_prompt: .asciiz "Please enter the input file name or path: "
+choice: .space 2   # لتخزين اختيار المستخدم
+output_prompt: .asciiz "Enter output file name: "
+results_saved: .asciiz "Results saved to the output file.\n"
+display_results: .asciiz "Displaying results on the screen.\n"
+scale_factor: .float 1000.0  # لتحويل الجزء العشري إلى عدد صحيح
+one: .space 128
+
+neg_one: .float -1.0  
+ten: .float 10
 .text
 .globl main
 main:
+#######################
+
+    
+    j input_file_path 
+    # التحقق من اختيار المستخدم
+    menu_loop:
+    # طباعة رسالة المنيو
+    li $v0, 4
+    la $a0, menu_message
+    syscall
+    # قراءة اختيار المستخدم
+    li $v0, 8
+    la $a0, choice
+    li $a1, 2  # قراءة حرف واحد مع null
+    syscall
+    lb $t0, choice
+    li $t1, 'f'
+    li $t2, 'F'
+    beq $t0, $t1, save_to_file
+    beq $t0, $t2, save_to_file
+
+    li $t1, 's'
+    li $t2, 'S'
+    beq $t0, $t1, display
+    beq $t0, $t2, display
+
+    li $t1, 'e'
+    li $t2, 'E'
+    beq $t0, $t1, end_check
+    beq $t0, $t2, end_check
+
+    # عرض رسالة عند الإدخال غير الصحيح
+    li $v0, 4
+    la $a0, invalid_message
+    syscall
+
+    # العودة إلى المنيو
+    j menu_loop
+
+input_file_path:
+  # طلب إدخال مسار الملف
+    li $v0, 4
+    la $a0, prompt_file  # رسالة طلب مسار الملف
+    syscall
+    
+
+    # قراءة مسار الملف من المستخدم
+    li $v0, 8                # syscall لقراءة النص
+    la $a0, filepath         # تخزين الإدخال في المتغير filepath
+    li $a1, 100              # الحد الأقصى لطول النص
+    syscall
+
+    # معالجة النص لإزالة newline (إذا وجد)
+    la $t0, filepath         # تحميل عنوان filepath في $t0
+replace_newline:
+    lb $t1, 0($t0)           # قراءة البايت الحالي
+    beq $t1, 0x0A, replace   # إذا كان البايت \n، استبدله بـ \0
+    beq $t1, 0, end_replace  # إذا وصلنا إلى النهاية (null character)، إنهاء
+    addi $t0, $t0, 1         # الانتقال إلى البايت التالي
+    j replace_newline
+
+replace:
+    sb $zero, 0($t0)         # استبدال \n بـ \0 (null character)
+
+end_replace:
+    # الآن المسار المخزن في filepath جاهز للاستخ
+################
     # فتح الملف
     li $v0, 13           # syscall لفتح الملف
-    la $a0, fileName     # مسار الملف
+    la $a0, filepath    # مسار الملف
     li $a1, 0            # وضع القراءة فقط
     syscall
     bltz $v0, error      # إذا فشل فتح الملف، انتقل إلى error
@@ -95,9 +191,7 @@ Coefi_:
     move $t3,$t5
      # تخزين الرقم المؤقت في المصفوفة
     move $t5, $t3                
-    li $v0, 11            # syscall لطباعة حرف
-    move $a0, $t3         # تحميل الرقم إلى $a0
-    syscall
+
     # الانتقال إلى العنوان التالي
     j next_char 
 negative:
@@ -165,7 +259,6 @@ next_char:
     lb $t3, 0($t1)        # قراءة البايت التالي
     li $t4,0
     j check_loop          # العودة للتحقق من البايت التالي
-
 not_char:
     addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
     lb $t3, 0($t1)        # قراءة البايت التالي
@@ -231,7 +324,6 @@ checkLoop:
     addi $t1, $t1, 1
     lb $t3, 0($t1)
     j check_loop
-
 CR:
     beq $t6,$s2,CR3 
   # --- حساب D ---
@@ -304,12 +396,12 @@ CR:
     # --- تخزين النتائج في الذاكرة ---
     s.s $f0, result1       # تخزين X في result1
     s.s $f1, result2       # تخزين Y في result2
-
+    
     # --- طباعة النتائج ---
     li $v0, 4
     la $a0, newline
     syscall
-
+DCR2: 
     # طباعة X
     l.s $f12, result1
     li $v0, 2
@@ -323,7 +415,8 @@ CR:
     l.s $f12, result2
     li $v0, 2
     syscall
-    j end_check
+   j menu_loop
+
 CR3:   
     la $t0, Coefficient
     subi $t0, $t0, 2
@@ -602,7 +695,9 @@ CALC_X_Y_Z:
     s.s $f0, X      # تخزين X في result1
     s.s $f1, Y      # تخزين Y في result2
     s.s $f2, Z
-    # --- طباعة النتائج ---
+    j menu_loop
+display_on_screenCR3:
+     # --- طباعة النتائج ---
     li $v0, 4
     la $a0, newline
     syscall
@@ -626,7 +721,331 @@ CALC_X_Y_Z:
     l.s $f12, Z
     li $v0, 2
     syscall
+   j menu_loop
+display:
+   li $t2,3
+   li $t3,2
+   la $t6,LineCount
+   beq $t2,$t6,display_on_screenCR3
+   beq $t3,$t6,DCR2
+save_to_file:
+   # تحميل الرقم العائم من الذاكرة
+    l.s $f12, X           # تحميل الرقم العائم إلى $f12
+    # تحويل الجزء الصحيح
+    cvt.w.s $f0, $f12     # تحويل الجزء الصحيح إلى عدد صحيح
+    #C:\\Users\\leena\\Desktop\\ARC\\input.txt" #C:\\Users\\leena\\Desktop\\ARC\\input.txt
+    mfc1 $t0, $f0         # تحميل الجزء الصحيح إلى سجل $t0
+    mtc1 $t0, $f0        # نقل العدد الصحيح من $t0 إلى سجل الفاصلة العائمة $f0
+    cvt.s.w $f1, $f0
+    la $a1, buffer        # العنوان النصي للنتيجة
+    jal int_to_string     # استدعاء الدالة لتحويل العدد الصحيح إلى نص
     
+    # عكس النص العشري
+    la $a1, buffer($t1)   # العنوان النصي للنص العشري
+    subu $a2, $v0, 1      # طول النص العشري - 1
+    jal reverse_string    # عكس النص العشري
+
+    # طباعة النص الناتج
+    li $v0, 4             # استدعاء الطباعة
+    la $a0, buffer        # تحميل النص في $a0
+    
+    syscall
+
+    # إنهاء البرنامج
+    li $v0, 10            # إنهاء البرنامج
+    syscall
+
+# دالة لتحويل الأعداد الصحيحة إلى نصوص
+int_to_string:
+    li $t3, 0             # مؤشر النص
+    li $t4, 10            # القاعدة (عشري)
+int_to_string_loop:
+    div $t5, $t0, $t4     # قسمة العدد
+    mfhi $t6              # الباقي
+    addiu $t8, $t6, '0'   # تحويل الرقم إلى ASCII
+    ble $t8 ,48,neggnum 
+    sb $t6, 0($a0)        # تخزين الرقم في النص
+    addiu $a0, $a0, 1     # تحديث المؤشر
+    li $t7,'.'
+    sb $t6, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+     j YY
+neggnum:
+    li $t0, '-'             # تحميل الحرف '-' (رمز ASCII 45) إلى السجل $t0
+    sb $t0, 0($a1)          # تخزين القيمة الموجودة في $t0 في العنوان $a0addiu $a1, $a1, 1 
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    mul $t6,$t6,-1
+    addiu $t6, $t6, '0'   # تحويل الرقم إلى ASCII
+    sb $t6, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    li $t7,46
+    sb $t7, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    ################################################################
+    neg.s $f12, $f12  
+    neg.s $f1, $f1
+    sub.s $f18,$f12,$f1
+    la $a0, ten      # تحميل عنوان القيمة -1
+    lwc1 $f16, 0($a0)     # تحميل -1 كعدد عائم إلى السجل $f1
+    mul.s $f19,$f18,$f16
+    cvt.w.s $f19, $f19     # تحويل الجزء الصحيح إلى عدد صحيح
+    mfc1 $t5, $f19  
+    addiu $t5, $t5, '0'   # تحويل الرقم إلى ASCII
+    sb $t5, 0($a1)        # تخزين الرقم في النص
+    li $v0,4
+    la $t0,newline
+    syscall
+    addiu $a1,$a1,1
+    li $v0, 4
+    
+    la $a0, output_prompt
+    syscall
+
+     # حساب طول النص في output_message
+    move $t0, $a1 # عنوان النص
+    li $t1, 0 
+
+ ############# YYYY
+ YY:
+    # تحميل الرقم العائم من الذاكرة
+    l.s $f12, Y           # تحميل الرقم العائم إلى $f12
+    # تحويل الجزء الصحيح
+    cvt.w.s $f0, $f12     # تحويل الجزء الصحيح إلى عدد صحيح
+    #C:\\Users\\leena\\Desktop\\ARC\\input.txt" #C:\\Users\\leena\\Desktop\\ARC\\input.txt
+    mfc1 $t0, $f0         # تحميل الجزء الصحيح إلى سجل $t0
+    mtc1 $t0, $f0        # نقل العدد الصحيح من $t0 إلى سجل الفاصلة العائمة $f0
+    cvt.s.w $f1, $f0
+
+    jal int_to_stringY     # استدعاء الدالة لتحويل العدد الصحيح إلى نص
+    
+    # عكس النص العشري
+#    la $a1, buffer($t1)   # العنوان النصي للنص العشري
+ #   subu $a2, $v0, 1      # طول النص العشري - 1
+  #  jal reverse_stringY    # عكس النص العشري
+
+    # طباعة النص الناتج
+    li $v0, 4             # استدعاء الطباعة
+    la $a0, buffer        # تحميل النص في $a0
+    syscall
+
+    # إنهاء البرنامج
+    li $v0, 10            # إنهاء البرنامج
+    syscall
+
+# دالة لتحويل الأعداد الصحيحة إلى نصوص
+int_to_stringY:
+    li $t3, 0             # مؤشر النص
+    li $t4, 10            # القاعدة (عشري)
+int_to_string_loopY:
+    div $t5, $t0, $t4     # قسمة العدد
+    mfhi $t6              # الباقي
+    addiu $t8, $t6, '0'   # تحويل الرقم إلى ASCII
+    ble $t8 ,48,neggnumY 
+    sb $t6, 0($a0)        # تخزين الرقم في النص
+    addiu $a0, $a0, 1     # تحديث المؤشر
+ #####
+    li $t7,46
+    sb $t7, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    ################################################################
+    sub.s $f18,$f12,$f1
+    la $a0, ten      # تحميل عنوان القيمة -1
+    lwc1 $f16, 0($a0)     # تحميل -1 كعدد عائم إلى السجل $f1
+    mul.s $f19,$f18,$f16
+    cvt.w.s $f19, $f19     # تحويل الجزء الصحيح إلى عدد صحيح
+    mfc1 $t5, $f19  
+    addiu $t5, $t5, '0'   # تحويل الرقم إلى ASCII
+    sb $t5, 0($a1)        # تخزين الرقم في النص
+    li $v0, 4
+    la $a0, output_prompt
+    syscall
+     move $t0, $a1 # عنوان النص
+     j ZZ
+     # حساب طول النص في output_message
+    move $t0, $a1 # عنوان النص
+    li $t1, 0              
+neggnumY:
+    li $t0, '-'             # تحميل الحرف '-' (رمز ASCII 45) إلى السجل $t0
+    sb $t0, 0($a1)          # تخزين القيمة الموجودة في $t0 في العنوان $a0addiu $a1, $a1, 1 
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    mul $t6,$t6,-1
+    addiu $t6, $t6, '0'   # تحويل الرقم إلى ASCII
+    sb $t6, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    li $t7,46
+    sb $t7, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    ################################################################
+    neg.s $f12, $f12  
+    neg.s $f1, $f1
+    sub.s $f18,$f12,$f1
+    la $a0, ten      # تحميل عنوان القيمة -1
+    lwc1 $f16, 0($a0)     # تحميل -1 كعدد عائم إلى السجل $f1
+    mul.s $f19,$f18,$f16
+    cvt.w.s $f19, $f19     # تحويل الجزء الصحيح إلى عدد صحيح
+    mfc1 $t5, $f19  
+    addiu $t5, $t5, '0'   # تحويل الرقم إلى ASCII
+    sb $t5, 0($a1)        # تخزين الرقم في النص
+    li $v0, 4
+    move $t0,$a1
+    la $a0, output_prompt
+    syscall
+     
+     # حساب طول النص في output_message
+    la $t0, buffer # عنوان النص
+    li $t1, 0 
+    
+############# ZZZZ
+ ZZ:
+    # تحميل الرقم العائم من الذاكرة
+    l.s $f12, Z           # تحميل الرقم العائم إلى $f12
+    # تحويل الجزء الصحيح
+    cvt.w.s $f0, $f12     # تحويل الجزء الصحيح إلى عدد صحيح
+    #C:\\Users\\leena\\Desktop\\ARC\\input.txt" #C:\\Users\\leena\\Desktop\\ARC\\input.txt
+    mfc1 $t0, $f0         # تحميل الجزء الصحيح إلى سجل $t0
+    mtc1 $t0, $f0        # نقل العدد الصحيح من $t0 إلى سجل الفاصلة العائمة $f0
+    cvt.s.w $f1, $f0
+
+    jal int_to_stringZ     # استدعاء الدالة لتحويل العدد الصحيح إلى نص
+    
+    # عكس النص العشري
+#    la $a1, buffer($t1)   # العنوان النصي للنص العشري
+ #   subu $a2, $v0, 1      # طول النص العشري - 1
+  #  jal reverse_stringY    # عكس النص العشري
+
+    # طباعة النص الناتج
+    li $v0, 4             # استدعاء الطباعة
+    la $a0, buffer        # تحميل النص في $a0
+    syscall
+
+    # إنهاء البرنامج
+    li $v0, 10            # إنهاء البرنامج
+    syscall
+
+# دالة لتحويل الأعداد الصحيحة إلى نصوص
+int_to_stringZ:
+    li $t3, 0             # مؤشر النص
+    li $t4, 10            # القاعدة (عشري)
+int_to_string_loopZ:
+    div $t5, $t0, $t4     # قسمة العدد
+    mfhi $t6              # الباقي
+    addiu $t8, $t6, '0'   # تحويل الرقم إلى ASCII
+    ble $t8 ,48,neggnumZ 
+    addiu $t6,$t6,'0'
+    sb $t6, 0($a0)        # تخزين الرقم في النص
+    addiu $a0, $a0, 1     # تحديث المؤشر
+ #####
+    li $t7,46
+    sb $t7, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    ################################################################
+    sub.s $f18,$f12,$f1
+    la $a0, ten      # تحميل عنوان القيمة -1
+    lwc1 $f16, 0($a0)     # تحميل -1 كعدد عائم إلى السجل $f1
+    mul.s $f19,$f18,$f16
+    cvt.w.s $f19, $f19     # تحويل الجزء الصحيح إلى عدد صحيح
+    
+    mfc1 $t5, $f19  
+    addiu $t5, $t5, '0'   # تحويل الرقم إلى ASCII
+        addiu $a1, $a1, 1     # تحديث المؤشر
+    
+    sb $t5, 0($a1)        # تخزين الرقم في النص
+    addiu $a1,$a1,1
+    li $v0, 4
+    la $a0, output_prompt
+    syscall
+    addi $t0,$t0,3
+la $t0,buffer
+ li $t1, 0 
+     j count_loop
+     # حساب طول النص في output_message
+               
+neggnumZ:
+    li $t0, '-'             # تحميل الحرف '-' (رمز ASCII 45) إلى السجل $t0
+    sb $t0, 0($a1)          # تخزين القيمة الموجودة في $t0 في العنوان $a0addiu $a1, $a1, 1 
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    mul $t6,$t6,-1
+    addiu $t6, $t6, '0'   # تحويل الرقم إلى ASCII
+    sb $t6, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    li $t7,46
+    sb $t7, 0($a1)        # تخزين الرقم في النص
+    addiu $a1, $a1, 1     # تحديث المؤشر
+    ################################################################
+    neg.s $f12, $f12  
+    neg.s $f1, $f1
+    sub.s $f18,$f12,$f1
+    la $a0, ten      # تحميل عنوان القيمة -1
+    lwc1 $f16, 0($a0)     # تحميل -1 كعدد عائم إلى السجل $f1
+    mul.s $f19,$f18,$f16
+    cvt.w.s $f19, $f19     # تحويل الجزء الصحيح إلى عدد صحيح
+    mfc1 $t5, $f19  
+    addiu $t5, $t5, '0'   # تحويل الرقم إلى ASCII
+    sb $t5, 0($a1)        # تخزين الرقم في النص
+    li $v0, 4
+    addiu $a1,$a1,1
+    la $a0, output_prompt
+    syscall
+
+    # حساب طول النص في output_message
+    move $t0,$a1
+    li $t1, 0 
+    j count_loop
+# دالة لعكس النص
+reverse_string:
+    move $t0, $a1         # النص الأصلي
+    move $t1, $a2         # الطول - 1
+reverse_loop:
+    blt $t1, $t0, reverse_done # إذا انتهى العكس
+    lb $t2, 0($t0)        # قراءة أول حرف
+    lb $t3, 0($t1)        # قراءة آخر حرف
+    sb $t2, 0($t1)        # كتابة الحرف الأول مكان الأخير
+    sb $t3, 0($t0)        # كتابة الحرف الأخير مكان الأول
+    addiu $t0, $t0, 1     # تقدم المؤشر الأول
+    subu $t1, $t1, 1      # تقليل المؤشر الأخير
+    j reverse_loop
+reverse_done:
+    jr $ra
+count_loop:
+    lb $t2, 0($t0)          # قراءة حرف
+    beqz $t2, count_done    # نهاية النص (null terminator)
+    addi $t1, $t1, 1        # زيادة العداد
+    addi $t0, $t0, 1        # الانتقال إلى الحرف التالي
+    j count_loop
+count_done:
+    move $a2, $t1           # تخزين الطول في $a2
+
+    # فتح ملف الإخراج
+    li $v0, 13              # كود syscall لفتح الملف
+    la $a0, output_file     # اسم ملف الإخراج
+    li $a1, 1               # وضع الكتابة (Write Mode)
+    li $a2, 0               # الحقوق الافتراضية
+    syscall
+
+    # التحقق من نجاح فتح الملف
+    bltz $v0, error         # إذا كان $v0 < 0، هناك خطأ
+    move $t0, $v0           # حفظ رقم الملف في $t0
+
+    # كتابة النص إلى الملف
+    li $v0, 15              # كود syscall للكتابة
+    move $a0, $t0           # رقم الملف
+    la $a1, buffer # النص الذي سيتم كتابته
+    move $a2, $t1           # طول النص
+    syscall
+
+    # إغلاق الملف
+    li $v0, 16              # كود syscall لإغلاق الملف
+    move $a0, $t0           # رقم الملف
+    syscall
+    # عرض رسالة النجاح
+    li $v0, 4
+    la $a0, results_saved
+    syscall
+
+    # العودة إلى المنيو
+    j menu_loop
+
+
 end_check:
     # طباعة سطر جديد بعد الأرقام
     li $v0, 4
