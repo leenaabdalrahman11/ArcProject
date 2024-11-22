@@ -1,3 +1,5 @@
+#Leena Abd Arahman 1211051
+#Aseel Saleh 1213378
 .data
 fileName: .asciiz "C:\\Users\\leena\\Desktop\\ARC\\input.txt" # مسار الملف
 fileWords: .space 1024       # لتخزين البيانات المقروءة من الملف
@@ -170,43 +172,65 @@ not_char:
     j check_loop          # العودة للتحقق من البايت التال
 
 is_char:
-    beq $s0,45,StoreNegCoeff
-    sw $t5, 0($t0)           # تخزين الرقم في Coefficient
-    addi $t0, $t0, 4         # الانتقال إلى الموقع التالي في المصفوفة
-    li $t5,0
-    la $t8 ,Variables
-    lb $t9,0($t8)
-    beq $t3,$t9,checkLoop
-    sb $t3,0($t2)
-    addi $t2,$t2,32
-    li $v0, 11            # syscall لطباعة حرف
-    move $a0, $t3         # تحميل الرقم إلى $a0
-    syscall
-    addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
-    lb $t3, 0($t1)        # قراءة البايت التالي
-    j check_loop 
+    beq $s0, 45, StoreNegCoeff  # إذا كانت القيمة سالبة، انتقل لمعالجة القيم السالبة
+    sw $t5, 0($t0)              # تخزين الرقم في Coefficient
+    addi $t0, $t0, 4            # الانتقال إلى الموقع التالي في المصفوفة
+    li $t5, 0
+    la $t8, Variables           # تحميل عنوان Variables
+    move $t9, $zero             # عداد للتحقق من عناصر Variables
+
+check_exists:
+    lb $t4, 0($t8)              # تحميل عنصر من Variables
+    beq $t4, $zero, add_value   # إذا وصلنا إلى نهاية Variables، أضف القيمة
+    beq $t3, $t4, skip          # إذا كانت القيمة موجودة، تخطَ الإضافة
+    addi $t8, $t8, 1            # الانتقال إلى العنصر التالي في Variables
+    j check_exists
+
+add_value:
+    sb $t3, 0($t2)              # تخزين القيمة الجديدة في Variables
+    addi $t2, $t2, 1            # الانتقال إلى الموقع التالي في Variables
+    li $v0, 11                  # syscall لطباعة الحرف
+    move $a0, $t3               # تحميل القيمة إلى $a0
+    syscall                     # طباعة الحرف
+
+skip:
+    addi $t1, $t1, 1            # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)              # قراءة البايت التالي
+    j check_loop
+
 StoreNegCoeff:
-    negu $t5, $t5 
-    li $s0,0
-    sw $t5, 0($t0)           # تخزين الرقم في Coefficient
-    addi $t0, $t0, 4         # الانتقال إلى الموقع التالي في المصفوفة
-    li $t5,0
-    lb $t9,0($t8)
-    beq $t3,$t9,checkLoop
-    sb $t3,0($t2)
-    addi $t2,$t2,32
-    li $v0, 11            # syscall لطباعة حرف
-    move $a0, $t3         # تحميل الرقم إلى $a0
-    syscall
-    addi $t1, $t1, 1      # الانتقال إلى العنوان التالي
-    lb $t3, 0($t1)        # قراءة البايت التالي
-    j check_loop 
-   
+    negu $t5, $t5               # عكس الإشارة للقيمة السالبة
+    li $s0, 0
+    sw $t5, 0($t0)              # تخزين الرقم السالب في Coefficient
+    addi $t0, $t0, 4            # الانتقال إلى الموقع التالي في المصفوفة
+    li $t5, 0
+    la $t8, Variables           # تحميل عنوان Variables
+    move $t9, $zero             # عداد للتحقق من عناصر Variables
+
+check_exists_neg:
+    lb $t4, 0($t8)              # تحميل عنصر من Variables
+    beq $t4, $zero, add_value_neg # إذا وصلنا إلى نهاية Variables، أضف القيمة
+    beq $t3, $t4, skip_neg      # إذا كانت القيمة موجودة، تخطَ الإضافة
+    addi $t8, $t8, 1            # الانتقال إلى العنصر التالي في Variables
+    j check_exists_neg
+
+add_value_neg:
+    sb $t3, 0($t2)              # تخزين القيمة الجديدة في Variables
+    addi $t2, $t2, 1            # الانتقال إلى الموقع التالي في Variables
+    li $v0, 11                  # syscall لطباعة الحرف
+    move $a0, $t3               # تحميل القيمة إلى $a0
+    syscall                     # طباعة الحرف
+
+skip_neg:
+    addi $t1, $t1, 1            # الانتقال إلى العنوان التالي
+    lb $t3, 0($t1)              # قراءة البايت التالي
+    j check_loop
+
 checkLoop:
-    addi $t8,$t8,32
-    addi $t1,$t1,1
-    lb $t3, 0($t1) 
-    j check_loop 
+    addi $t8, $t8, 32
+    addi $t1, $t1, 1
+    lb $t3, 0($t1)
+    j check_loop
 
 CR:
     beq $t6,$s2,CR3 
@@ -299,6 +323,7 @@ CR:
     l.s $f12, result2
     li $v0, 2
     syscall
+    j end_check
 CR3:   
     la $t0, Coefficient
     subi $t0, $t0, 2
@@ -396,6 +421,7 @@ DX:
     lw $t4, 0($s0)
     addi $s0, $s0, 32
     lw $t7, 0($s0)
+    
     mul $t5,$t4,$t9
     mul $t8,$t6,$t7
     sub $t5,$t5,$t8
@@ -410,8 +436,13 @@ DX:
     subi $t0, $t0, 2
     addi $t0, $t0, 4
     lw $t2, 0($t0)
-    addi $t0, $t0, 36
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 4
+    addi $t0, $t0, 32
+    addi $t0, $t0, 36############8888
     lw $t8, 0($t0)
+   
     mul $t6,$t4,$t8
     mul $t9,$t5,$t7
     sub $t6,$t6,$t9
@@ -419,6 +450,7 @@ DX:
     move $s6,$t3############الخلل
     sub $s4,$s4,$s5
     add $s1,$s4,$s6
+   
     # تحقق من الانت
 DY: 
     la $s0, Results
@@ -542,10 +574,9 @@ DZ:
     add $s5,$s4,$s6
     move $s3,$s5
     # تحقق من الان
-
-    
     
 CALC_X_Y_Z:
+
     move $t1,$s7#D
     move $t2,$s1#DX
     move $t3,$s2#DY
@@ -566,7 +597,7 @@ CALC_X_Y_Z:
     div.s $f0, $f4, $f5    # $f0 = Dx / D
     div.s $f1, $f6, $f5    # $f1 = Dy / D
     div.s $f2, $f7, $f5    # $f1 = Dy / D
-
+   
     # --- تخزين النتائج في الذاكرة ---
     s.s $f0, X      # تخزين X في result1
     s.s $f1, Y      # تخزين Y في result2
