@@ -13,6 +13,11 @@ Results: .space 512
 LineCount: .word 0
 result1: .float 0.0  # لتخزين نتيجة القسمة الأولى
 result2: .float 0.0  # لتخزين نتيجة القسمة الثانية
+X: .float 0.0
+Y: .float 0.0
+Z: .float 0.0
+done_flag: .word 0  # متغير لتحديد إذا انتهت العمليات
+
 .text
 .globl main
 main:
@@ -79,10 +84,11 @@ Coefi_:
     beq $t3, $t9, negative # إذا كان الحرف '-'
     blt $t3, $s2, next_char # إذا كانت أقل من ASCII للصفر، انتقل إلى الخانة التالية
     bgt $t3, $s3, next_char # إذا كانت أكبر من ASCII للتسعة، انتقل إلى الخانة التالية  لي 
+    beq $t3, 43, next_char
     subi $t3,$t3,48
     #sb $t3,0($t0)
     mul $t5, $t5, 10           # ضرب الرقم السابق بـ 10
-   
+    
     add $t5, $t5, $t3          # إض
     move $t3,$t5
      # تخزين الرقم المؤقت في المصفوفة
@@ -106,7 +112,6 @@ go_Next:
     addi $t7,$t7,28
     lw $t6,LineCount     ################################################################
     li $s2,3
-    beq $t6,$s2,CR3      ###############################################################
     beqz $t3, CR       # إذا كانت القيمة صفرًا، إنهاء
     j check_loop               # العودة إلى الحلقة
 go_Next_EQ:
@@ -202,8 +207,9 @@ checkLoop:
     addi $t1,$t1,1
     lb $t3, 0($t1) 
     j check_loop 
-    
+
 CR:
+    beq $t6,$s2,CR3 
   # --- حساب D ---
     la $t1, Coefficient
     subi $t1, $t1, 2
@@ -293,14 +299,309 @@ CR:
     l.s $f12, result2
     li $v0, 2
     syscall
-CR3:
+CR3:   
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t2, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t3, 0($t0)
+    addi $t0, $t0, 28
+    lw $t4, 0($t0)
+    addi $t0,$t0,4
+    lw $t5, 0($t0)
+    addi $t0,$t0,4
+    lw $t6, 0($t0)
+    addi $t0, $t0, 28
+    lw $t7, 0($t0)
+    addi $t0,$t0,4
+    lw $t8, 0($t0)
+    addi $t0,$t0,4
+    lw $t9, 0($t0)
+D:    # D
+    mul $t4,$t5,$t9
+    mul $t7,$t6,$t8
+    sub $t4,$t4,$t7
+    mul $t1,$t1,$t4
+    move $s4,$t1
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 36
+    lw $t4, 0($t0)
+    addi $t0, $t0, 36
+    lw $t7, 0($t0)
+    mul $t5,$t4,$t9
+    mul $t8,$t6,$t7
+    sub $t5,$t5,$t8
+    mul $t2,$t2,$t5
+    move $s5,$t2
+    #3
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 40
+    lw $t5, 0($t0)
+    addi $t0, $t0, 36
+    lw $t8, 0($t0)
+    
+    mul $t6,$t4,$t8
+    mul $t9,$t5,$t7
+    sub $t6,$t6,$t9
+    mul $t3,$t3,$t6
+    move $s6,$t3
+    
+    sub $s4,$s4,$s5
+    add $s5,$s4,$s6
+    move $s7,$s5
+         # تحقق من الانتهاء
+
+DX: 
+    la $s0, Results
+    subi $s0, $s0, 2
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($s0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t2, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t3, 0($t0)
+    la $s0, Results
+    subi $s0,$s0,2
+    addi $s0,$s0,32
+    addi $t0, $t0, 28
+    lw $t4, 0($s0)
+    addi $t0,$t0,4
+    lw $t5, 0($t0)
+    addi $t0,$t0,4
+    lw $t6, 0($t0)
+    addi $t0, $t0, 28
+    addi $s0,$s0,32
+    lw $t7, 0($s0)
+    addi $t0,$t0,4
+    lw $t8, 0($t0)
+    addi $t0,$t0,4
+    lw $t9, 0($t0)
+    # تحديث العلامة إلى انتهاء
+    mul $t4,$t5,$t9
+    mul $t7,$t6,$t8
+    sub $t4,$t4,$t7
+    mul $t1,$t1,$t4
+    move $s4,$t1
+    la $s0, Results
+    subi $s0, $s0, 2
+    lw $t1, 0($s0)
+    la $s0, Results
+    subi $s0, $s0, 2
+    addi $s0, $s0, 32
+    lw $t4, 0($s0)
+    addi $s0, $s0, 32
+    lw $t7, 0($s0)
+    mul $t5,$t4,$t9
+    mul $t8,$t6,$t7
+    sub $t5,$t5,$t8
+    mul $t2,$t2,$t5
+    move $s5,$t2
+    #3
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 40
+    lw $t5, 0($t0)
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 4
+    lw $t2, 0($t0)
+    addi $t0, $t0, 36
+    lw $t8, 0($t0)
+    mul $t6,$t4,$t8
+    mul $t9,$t5,$t7
+    sub $t6,$t6,$t9
+    mul $t3,$t3,$t6
+    move $s6,$t3############الخلل
+    sub $s4,$s4,$s5
+    add $s1,$s4,$s6
+    # تحقق من الانت
+DY: 
+    la $s0, Results
+    subi $s0, $s0, 2
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t2, 0($s0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t3, 0($t0)
+    la $s0, Results
+    subi $s0,$s0,2
+    addi $s0,$s0,32
+    addi $t0, $t0, 28
+    lw $t4, 0($t0)
+    addi $t0,$t0,4
+    lw $t5, 0($s0)
+    addi $t0,$t0,4
+    lw $t6, 0($t0)
+    addi $t0, $t0, 28
+    addi $s0,$s0,32
+    lw $t7, 0($t0)
+    addi $t0,$t0,4
+    lw $t8, 0($s0)
+    addi $t0,$t0,4
+    lw $t9, 0($t0)
+    # تحديث العلامة إلى انتهاء
+    mul $t4,$t5,$t9
+    mul $t7,$t6,$t8
+    sub $t4,$t4,$t7
+    mul $t1,$t1,$t4
+    move $s4,$t1
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($t0)
+    addi $t0, $t0, 36
+    lw $t4, 0($t0)
+    addi $t0, $t0, 36
+    lw $t7, 0($t0)
+    mul $t5,$t4,$t9
+    mul $t8,$t6,$t7
+    sub $t5,$t5,$t8
+    mul $t2,$t2,$t5
+    move $s5,$t2
+    #3
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    la $s0, Results
+    subi $s0,$s0,2
+    lw $t2, 0($s0)
+    addi $s0, $s0, 32
+    lw $t5, 0($s0)
+    addi $s0, $s0, 32
+    lw $t8, 0($s0)
+    mul $t6,$t4,$t8
+    mul $t9,$t5,$t7
+    sub $t6,$t6,$t9
+    mul $t3,$t3,$t6
+    move $s6,$t3   
+    sub $s4,$s4,$s5
+    add $s5,$s4,$s6
+    move $s2,$s5
+    # تحقق من الان
+DZ: 
+   la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    lw $t2, 0($t0)         # t1 = Coefficient[0]
+    addi $t0,$t0,4
+    la $s0, Results
+    subi $s0,$s0,2
+    lw $t3, 0($s0) 
+    addi $t0, $t0, 28
+    lw $t4, 0($t0)
+    addi $t0,$t0,4
+    lw $t5, 0($t0)
+    addi $t0,$t0,4
+    addi $s0,$s0,32
+    lw $t6, 0($s0)
+    addi $t0, $t0, 28
+    lw $t7, 0($t0)
+    addi $t0,$t0,4
+    lw $t8, 0($t0)
+    addi $t0,$t0,4
+    addi $s0,$s0,32
+    lw $t9, 0($s0)
+    mul $t4,$t5,$t9
+    mul $t7,$t6,$t8
+    sub $t4,$t4,$t7
+    mul $t1,$t1,$t4
+    move $s4,$t1
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    lw $t1, 0($t0)
+    addi $t0, $t0, 36
+    lw $t4, 0($t0)
+    addi $t0, $t0, 36
+    lw $t7, 0($t0)
+    mul $t5,$t4,$t9
+    mul $t8,$t6,$t7
+    sub $t5,$t5,$t8
+    mul $t2,$t2,$t5
+    move $s5,$t2
+    #3
+    la $t0, Coefficient
+    subi $t0, $t0, 2
+    addi $t0, $t0, 4
+    lw $t2, 0($t0)
+    addi $t0, $t0, 36
+    lw $t5, 0($t0)
+    addi $t0, $t0, 36
+    lw $t8, 0($t0)
+    mul $t6,$t4,$t8
+    mul $t9,$t5,$t7
+    sub $t6,$t6,$t9
+    mul $t3,$t3,$t6
+    move $s6,$t3   
+    sub $s4,$s4,$s5
+    add $s5,$s4,$s6
+    move $s3,$s5
+    # تحقق من الان
+
+    
+    
+CALC_X_Y_Z:
+    move $t1,$s7#D
+    move $t2,$s1#DX
+    move $t3,$s2#DY
+    move $t4,$s3#DZ
+      # --- تحويل النتائج إلى نقاط عائمة ---
+    mtc1 $t1, $f5          # نقل D إلى السجل العائم $f5
+    cvt.s.w $f5, $f5       # تحويل D إلى نقطة عائمة
+
+    mtc1 $t2, $f4          # نقل Dx إلى السجل العائم $f4
+    cvt.s.w $f4, $f4       # تحويل Dx إلى نقطة عائمة
+
+    mtc1 $t3, $f6          # نقل Dy إلى السجل العائم $f6
+    cvt.s.w $f6, $f6       # تحويل Dy إلى نقطة عائمة
+    mtc1 $t4, $f7          # نقل DZ--> D$f7
+    cvt.s.w $f7, $f7       # تحويل Dy إلى نقطة عائمة
+
+    # --- إجراء القسمة للحصول على X و Y ---
+    div.s $f0, $f4, $f5    # $f0 = Dx / D
+    div.s $f1, $f6, $f5    # $f1 = Dy / D
+    div.s $f2, $f7, $f5    # $f1 = Dy / D
+
+    # --- تخزين النتائج في الذاكرة ---
+    s.s $f0, X      # تخزين X في result1
+    s.s $f1, Y      # تخزين Y في result2
+    s.s $f2, Z
+    # --- طباعة النتائج ---
+    li $v0, 4
+    la $a0, newline
+    syscall
+
+    # طباعة X
+    l.s $f12, X
+    li $v0, 2
+    syscall
+    li $v0, 4
+    la $a0, newline
+    syscall
+
+    # طباعة Y
+    l.s $f12, Y
+    li $v0, 2
+    syscall
+    li $v0, 4
+    la $a0, newline
+    syscall
+        #طباعة Z
+    l.s $f12, Z
+    li $v0, 2
+    syscall
+    
 end_check:
     # طباعة سطر جديد بعد الأرقام
     li $v0, 4
     la $a0, newline
     syscall
-    move $s7,$s6
-  
+
     # إنهاء البرنامج
     li $v0, 10            # syscall لإنهاء البرنامج
     syscall
